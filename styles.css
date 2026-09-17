@@ -397,47 +397,10 @@ button { font: inherit; cursor: pointer; }
 
 .time-picker {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 .time-picker select { padding-right: 6px; cursor: pointer; }
-
-/* 오전 | 오후 두 칸짜리 선택 버튼 */
-.ampm-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  overflow: hidden;
-}
-.ampm-option { position: relative; }
-.ampm-option input {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.ampm-option span {
-  display: block;
-  padding: 9px 12px;
-  text-align: center;
-  font-size: 0.93rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-.ampm-option:hover span { background: var(--surface-2); }
-.ampm-option input:checked + span {
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 500;
-}
-.ampm-option input:focus-visible + span {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
 
 .event-list { display: grid; gap: 8px; }
 
