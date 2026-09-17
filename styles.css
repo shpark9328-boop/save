@@ -2,6 +2,7 @@
    Design tokens
    ========================================================================== */
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-alt: #f6f7f9;
   --surface: #ffffff;
@@ -22,6 +23,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0e1116;
     --bg-alt: #12161d;
     --surface: #161b23;
@@ -39,6 +41,7 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0e1116;
   --bg-alt: #12161d;
   --surface: #161b23;
@@ -378,7 +381,8 @@ button { font: inherit; cursor: pointer; }
 
 .field { display: grid; gap: 5px; }
 .field-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
-.field input {
+.field input,
+.field select {
   width: 100%;
   padding: 9px 11px;
   border: 1px solid var(--border);
@@ -388,7 +392,52 @@ button { font: inherit; cursor: pointer; }
   font: inherit;
   font-size: 0.93rem;
 }
-.field input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.field input:focus,
+.field select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+
+.time-picker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+.time-picker select { padding-right: 6px; cursor: pointer; }
+
+/* 오전 | 오후 두 칸짜리 선택 버튼 */
+.ampm-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+.ampm-option { position: relative; }
+.ampm-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ampm-option span {
+  display: block;
+  padding: 9px 12px;
+  text-align: center;
+  font-size: 0.93rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.ampm-option:hover span { background: var(--surface-2); }
+.ampm-option input:checked + span {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 500;
+}
+.ampm-option input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 
 .event-list { display: grid; gap: 8px; }
 
@@ -403,6 +452,7 @@ button { font: inherit; cursor: pointer; }
 }
 .event-time {
   flex: none;
+  white-space: nowrap;
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--accent);

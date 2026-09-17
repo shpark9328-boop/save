@@ -66,6 +66,23 @@
     return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + WEEKDAY_NAMES[d.getDay()] + ")";
   }
 
+  /* 저장용 24시간제 "HH:MM" → 표시용 "오후 2:30" */
+  function formatTime(time24) {
+    if (!time24) return "";
+    var parts = time24.split(":");
+    var h = Number(parts[0]);
+    var meridiem = h < 12 ? "오전" : "오후";
+    var h12 = h % 12 === 0 ? 12 : h % 12;
+    return meridiem + " " + h12 + ":" + parts[1];
+  }
+
+  /* 오전/오후 + 12시간제 시·분 → 저장용 24시간제 "HH:MM" */
+  function toTime24(meridiem, hour12, minute) {
+    var h = Number(hour12) % 12;          // 12시는 0으로
+    if (meridiem === "pm") h += 12;
+    return pad(h) + ":" + pad(Number(minute));
+  }
+
   /* ---------------------------------------------------------------------------
      상태
      ------------------------------------------------------------------------ */
@@ -86,7 +103,8 @@
   var eventEmpty = document.getElementById("event-empty");
   var eventForm = document.getElementById("event-form");
   var eventTitleInput = document.getElementById("event-title");
-  var eventTimeInput = document.getElementById("event-time");
+  var hourSelect = document.getElementById("event-hour");
+  var minuteSelect = document.getElementById("event-minute");
   var upcomingList = document.getElementById("upcoming-list");
   var upcomingEmpty = document.getElementById("upcoming-empty");
 
@@ -211,7 +229,7 @@
       if (item.time) {
         var time = document.createElement("span");
         time.className = "event-time";
-        time.textContent = item.time;
+        time.textContent = formatTime(item.time);
         li.appendChild(time);
       }
 
@@ -271,7 +289,9 @@
 
       var name = document.createElement("span");
       name.className = "upcoming-name";
-      name.textContent = row.item.time ? row.item.time + " · " + row.item.title : row.item.title;
+      name.textContent = row.item.time
+        ? formatTime(row.item.time) + " · " + row.item.title
+        : row.item.title;
       li.appendChild(name);
 
       var dday = document.createElement("span");
@@ -333,12 +353,45 @@
     var title = eventTitleInput.value.trim();
     if (!title) return;
 
-    addEvent(selectedKey, title, eventTimeInput.value);
+    addEvent(selectedKey, title, readTimePicker());
     eventTitleInput.value = "";
-    eventTimeInput.value = "";
+    resetTimePicker();
     render();
     eventTitleInput.focus();
   });
+
+  /* ---------------------------------------------------------------------------
+     시간 선택 (오전/오후 버튼 · 시 · 분)
+     ------------------------------------------------------------------------ */
+  function addOption(select, value, label) {
+    var opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  }
+
+  function buildTimePicker() {
+    addOption(hourSelect, "", "시");
+    for (var h = 1; h <= 12; h++) addOption(hourSelect, String(h), h + "시");
+    for (var m = 0; m < 60; m += 5) addOption(minuteSelect, String(m), pad(m) + "분");
+  }
+
+  function selectedMeridiem() {
+    var checked = eventForm.querySelector('input[name="event-ampm"]:checked');
+    return checked ? checked.value : "am";
+  }
+
+  /* 시를 고르지 않았으면 시간 없는 일정으로 취급한다 */
+  function readTimePicker() {
+    if (!hourSelect.value) return "";
+    return toTime24(selectedMeridiem(), hourSelect.value, minuteSelect.value);
+  }
+
+  function resetTimePicker() {
+    eventForm.querySelector('input[name="event-ampm"][value="am"]').checked = true;
+    hourSelect.value = "";
+    minuteSelect.value = "0";
+  }
 
   /* ---------------------------------------------------------------------------
      테마 전환
@@ -391,5 +444,6 @@
 
   document.getElementById("year").textContent = String(new Date().getFullYear());
 
+  buildTimePicker();
   render();
 })();
