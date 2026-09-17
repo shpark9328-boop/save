@@ -1,0 +1,267 @@
+// KTX 좌석 알림 서비스 데이터 모델
+//
+// 설계 요점
+//  - Alert       : 사용자가 등록한 알림 조건 (모니터링 대상)
+//  - WatchGroup  : 동일 (노선 + 날짜) 조건을 묶는 조회 단위.
+//                  여러 사용자가 같은 노선/날짜를 등록해도 외부 조회는 1회만 수행한다.
+//  - TrainSnapshot : WatchGroup 단위의 "가장 최근 좌석 상태" (열차 x 좌석등급).
+//  - AlertSeatState: Alert 단위의 "조건 충족 여부" 상태. 중복 알림 방지의 핵심.
+//  - SeatEvent / CheckRun / NotificationLog / WorkerHeartbeat : 운영 관측용 기록.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TrainType {
+  KTX
+  KTX_SANCHEON
+  KTX_EUM
+  KTX_CHEONGRYONG
+  ITX_SAEMAEUL
+}
+
+enum SeatClass {
+  GENERAL // 일반실
+  FIRST // 특실
+}
+
+enum SeatStatus {
+  AVAILABLE // 예약 가능
+  SOLD_OUT // 매진
+  WAITLIST // 예약대기 가능 (좌석은 없음)
+  UNKNOWN // 조회 실패 / 제공처가 정보를 주지 않음
+}
+
+enum NotificationChannel {
+  WEB_PUSH
+  EMAIL
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum CheckStatus {
+  OK
+  ERROR
+}
+
+/// 사용자. 계정/비밀번호를 두지 않고 브라우저가 보관하는 watchToken 으로 식별한다.
+/// watchToken 은 평문을 저장하지 않고 SHA-256 해시만 저장한다.
+model User {
+  id             String   @id @default(cuid())
+  /// 선택 입력. 이메일 알림을 쓰지 않으면 저장하지 않는다.
+  email          String?  @unique
+  watchTokenHash String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  alerts            Alert[]
+  pushSubscriptions PushSubscription[]
+
+  @@index([createdAt])
+}
+
+model PushSubscription {
+  id           String    @id @default(cuid())
+  userId       String
+  endpoint     String    @unique
+  /// Web Push 암호화 키. 서버에서만 사용하며 클라이언트로 되돌려주지 않는다.
+  p256dh       String
+  auth         String
+  userAgent    String?
+  failureCount Int       @default(0)
+  disabledAt   DateTime?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// 외부 조회 단위. (provider, 출발역, 도착역, 날짜) 당 하나만 존재한다.
+model WatchGroup {
+  id                   String    @id @default(cuid())
+  provider             String
+  departureStationCode String
+  arrivalStationCode   String
+  /// KST 기준 여행 날짜 (UTC 자정으로 정규화하여 저장)
+  travelDate           DateTime  @db.Date
+  active               Boolean   @default(true)
+  /// 워커 다중 실행 시 중복 조회를 막기 위한 낙관적 잠금
+  lockedUntil          DateTime?
+  lockedBy             String?
+  lastCheckedAt        DateTime?
+  nextCheckAt          DateTime  @default(now())
+  consecutiveFailures  Int       @default(0)
+  lastError            String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  alerts    Alert[]
+  snapshots TrainSnapshot[]
+  events    SeatEvent[]
+  checkRuns CheckRun[]
+
+  @@unique([provider, departureStationCode, arrivalStationCode, travelDate])
+  @@index([active, nextCheckAt])
+}
+
+model Alert {
+  id     String @id @default(cuid())
+  userId String
+
+  groupId String
+
+  departureStationCode String
+  departureStationName String
+  arrivalStationCode   String
+  arrivalStationName   String
+  /// KST 기준 여행 날짜
+  travelDate           DateTime @db.Date
+  /// "HH:mm" (KST). 출발시각이 이 범위 안에 있는 열차만 알린다.
+  startTime            String
+  endTime              String
+  passengerCount       Int      @default(1)
+
+  trainTypes  TrainType[]
+  seatClasses SeatClass[]
+  channels    NotificationChannel[]
+
+  enabled           Boolean @default(true)
+  /// 알림 발송 누적 횟수 상한(과다 알림 방지). 0 이면 무제한.
+  maxNotifications  Int     @default(20)
+  notificationCount Int     @default(0)
+
+  memo String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  /// 지정 시각 이후에는 모니터링하지 않는다(기본: 여행일 막차 이후).
+  expiresAt      DateTime
+  lastNotifiedAt DateTime?
+
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group  WatchGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  states AlertSeatState[]
+  logs   NotificationLog[]
+
+  @@index([userId, createdAt])
+  @@index([enabled, expiresAt])
+  @@index([groupId])
+}
+
+/// Alert 하나가 특정 열차/좌석등급에 대해 "조건을 충족한 상태였는지"를 기록한다.
+/// SOLD_OUT -> AVAILABLE 전이에서만 알림을 보내기 위한 상태 저장소.
+model AlertSeatState {
+  id             String     @id @default(cuid())
+  alertId        String
+  trainNo        String
+  seatClass      SeatClass
+  /// 직전 사이클에서 "이 알림 조건을 충족했는가"
+  satisfied      Boolean    @default(false)
+  lastStatus     SeatStatus @default(UNKNOWN)
+  remainingSeats Int?
+  notifyCount    Int        @default(0)
+  lastChangedAt  DateTime   @default(now())
+  lastNotifiedAt DateTime?
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, trainNo, seatClass])
+  @@index([alertId])
+}
+
+/// WatchGroup 단위의 최신 좌석 상태 스냅샷.
+model TrainSnapshot {
+  id             String     @id @default(cuid())
+  groupId        String
+  trainNo        String
+  trainType      TrainType
+  trainName      String
+  departureAt    DateTime
+  arrivalAt      DateTime
+  seatClass      SeatClass
+  status         SeatStatus
+  remainingSeats Int?
+  reservationUrl String?
+  checkedAt      DateTime   @default(now())
+
+  group WatchGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, trainNo, seatClass])
+  @@index([groupId, checkedAt])
+}
+
+/// 그룹 단위 좌석 상태 변화 이력(관리자 화면/디버깅용).
+model SeatEvent {
+  id             String     @id @default(cuid())
+  groupId        String
+  trainNo        String
+  seatClass      SeatClass
+  fromStatus     SeatStatus
+  toStatus       SeatStatus
+  remainingSeats Int?
+  occurredAt     DateTime   @default(now())
+
+  group WatchGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, occurredAt])
+  @@index([occurredAt])
+}
+
+/// 외부 조회 1회에 대한 기록.
+model CheckRun {
+  id           String      @id @default(cuid())
+  groupId      String?
+  provider     String
+  status       CheckStatus
+  trainsFound  Int         @default(0)
+  durationMs   Int         @default(0)
+  errorMessage String?
+  startedAt    DateTime    @default(now())
+  finishedAt   DateTime?
+
+  group WatchGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([startedAt])
+  @@index([status, startedAt])
+}
+
+model NotificationLog {
+  id        String              @id @default(cuid())
+  alertId   String?
+  trainNo   String
+  seatClass SeatClass
+  channel   NotificationChannel
+  status    NotificationStatus
+  title     String
+  body      String
+  error     String?
+  sentAt    DateTime            @default(now())
+
+  alert Alert? @relation(fields: [alertId], references: [id], onDelete: SetNull)
+
+  @@index([sentAt])
+  @@index([alertId, sentAt])
+}
+
+model WorkerHeartbeat {
+  /// 워커 인스턴스 ID
+  id              String    @id
+  provider        String
+  startedAt       DateTime  @default(now())
+  lastBeatAt      DateTime  @default(now())
+  cyclesCompleted Int       @default(0)
+  groupsChecked   Int       @default(0)
+  lastError       String?
+  lastErrorAt     DateTime?
+}
