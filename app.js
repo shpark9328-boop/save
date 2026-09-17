@@ -66,13 +66,29 @@
     return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + WEEKDAY_NAMES[d.getDay()] + ")";
   }
 
+  function addDays(date, n) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
+  }
+
+  /* 그 날짜가 속한 주의 일요일 */
+  function startOfWeek(date) {
+    return addDays(startOfDay(date), -date.getDay());
+  }
+
+  /* "2026년 9월 13일 ~ 9월 26일" (해가 바뀌면 끝 날짜에도 연도를 붙인다) */
+  function formatRange(start, end) {
+    var text = start.getFullYear() + "년 " + (start.getMonth() + 1) + "월 " + start.getDate() + "일 ~ ";
+    if (end.getFullYear() !== start.getFullYear()) text += end.getFullYear() + "년 ";
+    return text + (end.getMonth() + 1) + "월 " + end.getDate() + "일";
+  }
+
   /* ---------------------------------------------------------------------------
      상태
      ------------------------------------------------------------------------ */
   var events = readStore(STORAGE_EVENTS, {}) || {};
+  var DAYS_IN_VIEW = 14;                        // 한 화면 = 2주
   var today = startOfDay(new Date());
-  var viewYear = today.getFullYear();
-  var viewMonth = today.getMonth();
+  var viewStart = startOfWeek(today);           // 화면 첫 칸(일요일)
   var selectedKey = toKey(today);
 
   /* ---------------------------------------------------------------------------
@@ -128,30 +144,22 @@
      달력 그리기
      ------------------------------------------------------------------------ */
   function renderCalendar() {
-    titleEl.textContent = viewYear + "년 " + (viewMonth + 1) + "월";
+    titleEl.textContent = formatRange(viewStart, addDays(viewStart, DAYS_IN_VIEW - 1));
     grid.textContent = "";
 
-    var firstOfMonth = new Date(viewYear, viewMonth, 1);
-    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    var leading = firstOfMonth.getDay();               // 1일 앞의 빈 칸 수
-    var totalCells = Math.ceil((leading + daysInMonth) / 7) * 7;
-
-    var cursor = new Date(viewYear, viewMonth, 1 - leading);
     var todayKey = toKey(today);
     var fragment = document.createDocumentFragment();
 
-    for (var i = 0; i < totalCells; i++) {
-      var date = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + i);
-      fragment.appendChild(buildDayCell(date, todayKey));
+    for (var i = 0; i < DAYS_IN_VIEW; i++) {
+      fragment.appendChild(buildDayCell(addDays(viewStart, i), todayKey, i === 0));
     }
 
     grid.appendChild(fragment);
   }
 
-  function buildDayCell(date, todayKey) {
+  function buildDayCell(date, todayKey, isFirstCell) {
     var key = toKey(date);
     var dayEvents = eventsOn(key);
-    var isOutside = date.getMonth() !== viewMonth;
 
     var cell = document.createElement("button");
     cell.type = "button";
@@ -159,7 +167,6 @@
     cell.dataset.date = key;
     cell.setAttribute("role", "gridcell");
 
-    if (isOutside) cell.classList.add("is-outside");
     if (date.getDay() === 0) cell.classList.add("is-sun");
     if (date.getDay() === 6) cell.classList.add("is-sat");
     if (key === todayKey) cell.classList.add("is-today");
@@ -173,10 +180,27 @@
     if (dayEvents.length) label += ", 일정 " + dayEvents.length + "개";
     cell.setAttribute("aria-label", label);
 
+    var head = document.createElement("span");
+    head.className = "day-head";
+
+    if (isFirstCell || date.getDate() === 1) {
+      var month = document.createElement("span");
+      month.className = "day-month";
+      month.textContent = (date.getMonth() + 1) + "월";
+      head.appendChild(month);
+    }
+
     var num = document.createElement("span");
     num.className = "day-num";
     num.textContent = String(date.getDate());
-    cell.appendChild(num);
+    head.appendChild(num);
+
+    var weekday = document.createElement("span");
+    weekday.className = "day-weekday";
+    weekday.textContent = WEEKDAY_NAMES[date.getDay()];
+    head.appendChild(weekday);
+
+    cell.appendChild(head);
 
     // 그날의 일정을 칸 안에 전부 표시한다 (자르지 않고 줄바꿈)
     if (dayEvents.length) {
@@ -301,33 +325,22 @@
     if (!cell) return;
 
     selectedKey = cell.dataset.date;
-    var picked = fromKey(selectedKey);
-
-    // 이전/다음 달 날짜를 누르면 해당 달로 이동
-    if (picked.getMonth() !== viewMonth || picked.getFullYear() !== viewYear) {
-      viewYear = picked.getFullYear();
-      viewMonth = picked.getMonth();
-    }
-
     render();
     eventTitleInput.focus();
   });
 
-  document.getElementById("prev-month").addEventListener("click", function () {
-    viewMonth -= 1;
-    if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; }
+  document.getElementById("prev-weeks").addEventListener("click", function () {
+    viewStart = addDays(viewStart, -DAYS_IN_VIEW);
     renderCalendar();
   });
 
-  document.getElementById("next-month").addEventListener("click", function () {
-    viewMonth += 1;
-    if (viewMonth > 11) { viewMonth = 0; viewYear += 1; }
+  document.getElementById("next-weeks").addEventListener("click", function () {
+    viewStart = addDays(viewStart, DAYS_IN_VIEW);
     renderCalendar();
   });
 
   document.getElementById("today-btn").addEventListener("click", function () {
-    viewYear = today.getFullYear();
-    viewMonth = today.getMonth();
+    viewStart = startOfWeek(today);
     selectedKey = toKey(today);
     render();
   });

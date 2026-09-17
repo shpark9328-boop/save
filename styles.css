@@ -97,6 +97,7 @@ button { font: inherit; cursor: pointer; }
   margin: 0 auto;
   padding: 0 16px;
 }
+.wrap-wide { max-width: 1440px; }   /* 달력 섹션: 14칸이 가로를 넉넉히 쓰도록 */
 
 .skip-link {
   position: absolute;
@@ -247,7 +248,7 @@ button { font: inherit; cursor: pointer; }
 }
 .btn-ghost:hover { background: var(--surface-2); }
 
-.btn-small { padding: 6px 14px; font-size: 0.88rem; background: var(--surface-2); color: var(--text); }
+.btn-small { padding: 6px 14px; font-size: 0.88rem; background: var(--surface-2); color: var(--text); white-space: nowrap; }
 .btn-small:hover { background: var(--border); }
 
 .btn-block { width: 100%; }
@@ -289,11 +290,12 @@ button { font: inherit; cursor: pointer; }
 /* ==========================================================================
    Calendar
    ========================================================================== */
-.calendar-layout {
+.calendar-bottom {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+  margin-top: 20px;
 }
 
 .calendar-toolbar {
@@ -304,14 +306,14 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 16px;
 }
 
-.calendar-title { font-size: 1.25rem; font-weight: 700; }
+.calendar-title { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .calendar-controls { display: flex; align-items: center; gap: 6px; }
 
 .calendar-weekdays,
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .calendar-weekdays {
@@ -319,7 +321,7 @@ button { font: inherit; cursor: pointer; }
 }
 .calendar-weekdays span {
   text-align: center;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-muted);
   padding-bottom: 4px;
@@ -332,11 +334,11 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;            /* 그리드 칸보다 넓어지지 않도록 */
-  min-height: 62px;
+  min-height: 180px;       /* 일정을 담을 넉넉한 기본 높이 */
   height: 100%;            /* 같은 줄의 칸들은 가장 큰 칸 높이에 맞춰진다 */
-  padding: 6px 4px;
+  padding: 10px 8px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -347,11 +349,22 @@ button { font: inherit; cursor: pointer; }
 }
 .day:hover { background: var(--border); }
 
-.day .day-num { font-size: 0.95rem; font-weight: 500; text-align: center; }
+/* 날짜 머리: (월) 숫자 (요일은 모바일 목록에서만) */
+.day-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  flex: none;
+}
+.day .day-num { font-size: 1.05rem; font-weight: 600; }
+.day .day-month { font-size: 0.78rem; font-weight: 500; color: var(--text-muted); }
+.day .day-weekday { display: none; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
 
-.day.is-outside { background: transparent; color: var(--text-muted); opacity: 0.45; }
-.day.is-sun .day-num { color: var(--sun); }
-.day.is-sat .day-num { color: var(--sat); }
+.day.is-sun .day-num,
+.day.is-sun .day-weekday { color: var(--sun); }
+.day.is-sat .day-num,
+.day.is-sat .day-weekday { color: var(--sat); }
 
 .day.is-today {
   border-color: var(--accent);
@@ -364,25 +377,27 @@ button { font: inherit; cursor: pointer; }
   border-color: var(--accent);
 }
 .day.is-selected .day-num,
+.day.is-selected .day-month,
+.day.is-selected .day-weekday,
 .day.is-selected.is-today .day-num { color: var(--accent-contrast); }
 
 /* 칸 안의 일정 목록: 글자를 자르지 않고 칸 너비 안에서 줄바꿈한다 */
 .day-events {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
   min-width: 0;
 }
 .day-event {
   display: block;
-  padding: 2px 5px;
-  border-radius: 5px;
+  padding: 5px 8px;
+  border-radius: 6px;
   background: var(--accent-soft);
   color: var(--text);
-  font-size: 0.72rem;
+  font-size: 0.86rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.45;
   text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;   /* 긴 단어·URL도 칸 너비에서 끊는다 */
@@ -392,7 +407,6 @@ button { font: inherit; cursor: pointer; }
   background: rgba(255, 255, 255, 0.22);
   color: var(--accent-contrast);
 }
-.day.is-outside .day-event { background: var(--surface-2); color: var(--text-muted); }
 
 /* 일정 패널 */
 .events-title { font-size: 1.05rem; font-weight: 700; }
@@ -460,7 +474,7 @@ button { font: inherit; cursor: pointer; }
 .event-empty { color: var(--text-muted); font-size: 0.9rem; padding: 6px 0; }
 
 /* 다가오는 일정 */
-.upcoming-card { margin-top: 20px; }
+.upcoming-card { align-self: stretch; }
 .upcoming-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; }
 .upcoming-list { display: grid; gap: 8px; }
 
@@ -527,8 +541,42 @@ button { font: inherit; cursor: pointer; }
 /* ==========================================================================
    Responsive
    ========================================================================== */
+@media (max-width: 1000px) {
+  .day { min-height: 140px; padding: 8px 6px; gap: 6px; }
+  .day .day-num { font-size: 0.95rem; }
+  .day-event { font-size: 0.78rem; padding: 4px 6px; }
+}
+
 @media (max-width: 900px) {
-  .calendar-layout { grid-template-columns: 1fr; }
+  .calendar-bottom { grid-template-columns: 1fr; }
+}
+
+/* 폰: 7열은 너무 좁으므로 하루를 가로로 넓게 쓰는 세로 목록으로 바꾼다 */
+@media (max-width: 640px) {
+  /* 툴바: 기간 제목 한 줄, 그 아래 ‹ 오늘 › 를 양끝으로 */
+  .calendar-toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .calendar-title { font-size: 1.05rem; }
+  .calendar-controls { justify-content: space-between; }
+  .calendar-weekdays { display: none; }
+  .calendar-grid { grid-template-columns: 1fr; gap: 8px; }
+  .day {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 72px;
+    height: auto;
+    padding: 10px 12px;
+  }
+  .day-head {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 56px;
+  }
+  .day .day-weekday { display: block; }
+  .day .day-num { font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+  .day-events { flex: 1; }
+  .day-event { font-size: 0.86rem; padding: 5px 8px; }
 }
 
 @media (max-width: 720px) {
@@ -548,10 +596,6 @@ button { font: inherit; cursor: pointer; }
   .nav-toggle { display: inline-flex; }
   .hero { padding: 56px 0 44px; }
   .section { padding: 48px 0; }
-  .day { min-height: 52px; padding: 4px 2px; gap: 3px; }
-  .day .day-num { font-size: 0.85rem; }
-  .day-event { font-size: 0.64rem; padding: 2px 3px; border-radius: 4px; }
-  .calendar-weekdays, .calendar-grid { gap: 4px; }
   .upcoming-date { min-width: 92px; }
 }
 

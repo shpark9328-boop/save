@@ -59,40 +59,40 @@
     </section>
 
     <!-- Calendar -->
-    <section id="calendar" class="section">
-      <div class="wrap">
+    <section id="calendar" class="section section-calendar">
+      <div class="wrap wrap-wide">
         <header class="section-head">
           <h2 class="section-title">달력</h2>
-          <p class="section-desc">날짜를 클릭하면 그날의 일정을 확인하고 추가할 수 있습니다.</p>
+          <p class="section-desc">2주 단위로 보여줍니다. 날짜를 클릭하면 그날의 일정을 확인하고 추가할 수 있습니다.</p>
         </header>
 
-        <div class="calendar-layout">
-          <!-- 달력 본체 -->
-          <div class="card calendar-card">
-            <div class="calendar-toolbar">
-              <div class="calendar-title-group">
-                <h3 id="calendar-title" class="calendar-title" aria-live="polite">2026년 9월</h3>
-              </div>
-              <div class="calendar-controls">
-                <button id="prev-month" class="icon-btn" type="button" aria-label="이전 달">‹</button>
-                <button id="today-btn" class="btn btn-small" type="button">오늘</button>
-                <button id="next-month" class="icon-btn" type="button" aria-label="다음 달">›</button>
-              </div>
+        <!-- 달력 본체: 2주(14일) -->
+        <div class="card calendar-card">
+          <div class="calendar-toolbar">
+            <div class="calendar-title-group">
+              <h3 id="calendar-title" class="calendar-title" aria-live="polite">2026년 9월 13일 ~ 9월 26일</h3>
             </div>
-
-            <div class="calendar-weekdays" aria-hidden="true">
-              <span class="is-sun">일</span>
-              <span>월</span>
-              <span>화</span>
-              <span>수</span>
-              <span>목</span>
-              <span>금</span>
-              <span class="is-sat">토</span>
+            <div class="calendar-controls">
+              <button id="prev-weeks" class="icon-btn" type="button" aria-label="이전 2주">‹</button>
+              <button id="today-btn" class="btn btn-small" type="button">오늘</button>
+              <button id="next-weeks" class="icon-btn" type="button" aria-label="다음 2주">›</button>
             </div>
-
-            <div id="calendar-grid" class="calendar-grid" role="grid" aria-labelledby="calendar-title"></div>
           </div>
 
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span class="is-sun">일</span>
+            <span>월</span>
+            <span>화</span>
+            <span>수</span>
+            <span>목</span>
+            <span>금</span>
+            <span class="is-sat">토</span>
+          </div>
+
+          <div id="calendar-grid" class="calendar-grid" role="grid" aria-labelledby="calendar-title"></div>
+        </div>
+
+        <div class="calendar-bottom">
           <!-- 선택한 날짜의 일정 -->
           <aside class="card events-card" aria-label="선택한 날짜의 일정">
             <h3 id="events-title" class="events-title">날짜를 선택하세요</h3>
@@ -116,13 +116,13 @@
             <ul id="event-list" class="event-list"></ul>
             <p id="event-empty" class="event-empty">등록된 일정이 없습니다.</p>
           </aside>
-        </div>
 
-        <!-- 다가오는 일정 -->
-        <div class="card upcoming-card">
-          <h3 class="upcoming-title">다가오는 일정</h3>
-          <ul id="upcoming-list" class="upcoming-list"></ul>
-          <p id="upcoming-empty" class="event-empty">아직 예정된 일정이 없습니다.</p>
+          <!-- 다가오는 일정 -->
+          <div class="card upcoming-card">
+            <h3 class="upcoming-title">다가오는 일정</h3>
+            <ul id="upcoming-list" class="upcoming-list"></ul>
+            <p id="upcoming-empty" class="event-empty">아직 예정된 일정이 없습니다.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -138,8 +138,8 @@
         <div class="feature-grid">
           <article class="card feature">
             <div class="feature-icon" aria-hidden="true">🗓️</div>
-            <h3>월간 달력</h3>
-            <p>이번 달 전체를 한눈에 보고, 이전·다음 달로 자유롭게 이동할 수 있습니다.</p>
+            <h3>2주 달력</h3>
+            <p>한 화면에 2주(14일)를 넉넉한 칸으로 보여주고, 이전·다음 2주로 자유롭게 이동할 수 있습니다.</p>
           </article>
           <article class="card feature">
             <div class="feature-icon" aria-hidden="true">✍️</div>
