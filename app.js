@@ -178,15 +178,18 @@
     num.textContent = String(date.getDate());
     cell.appendChild(num);
 
-    var dots = document.createElement("span");
-    dots.className = "day-dots";
-    var dotCount = Math.min(dayEvents.length, 3);
-    for (var d = 0; d < dotCount; d++) {
-      var dot = document.createElement("span");
-      dot.className = "day-dot";
-      dots.appendChild(dot);
+    // 그날의 일정을 칸 안에 전부 표시한다 (자르지 않고 줄바꿈)
+    if (dayEvents.length) {
+      var list = document.createElement("span");
+      list.className = "day-events";
+      dayEvents.forEach(function (item) {
+        var chip = document.createElement("span");
+        chip.className = "day-event";
+        chip.textContent = item.time ? item.time + " " + item.title : item.title;
+        list.appendChild(chip);
+      });
+      cell.appendChild(list);
     }
-    cell.appendChild(dots);
 
     return cell;
   }

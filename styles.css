@@ -331,20 +331,23 @@ button { font: inherit; cursor: pointer; }
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 4px;
+  min-width: 0;            /* 그리드 칸보다 넓어지지 않도록 */
   min-height: 62px;
-  padding: 8px 4px 6px;
+  height: 100%;            /* 같은 줄의 칸들은 가장 큰 칸 높이에 맞춰진다 */
+  padding: 6px 4px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  text-align: left;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .day:hover { background: var(--border); }
 
-.day .day-num { font-size: 0.95rem; font-weight: 500; }
+.day .day-num { font-size: 0.95rem; font-weight: 500; text-align: center; }
 
 .day.is-outside { background: transparent; color: var(--text-muted); opacity: 0.45; }
 .day.is-sun .day-num { color: var(--sun); }
@@ -363,15 +366,33 @@ button { font: inherit; cursor: pointer; }
 .day.is-selected .day-num,
 .day.is-selected.is-today .day-num { color: var(--accent-contrast); }
 
-.day-dots { display: flex; gap: 3px; min-height: 6px; }
-.day-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
+/* 칸 안의 일정 목록: 글자를 자르지 않고 칸 너비 안에서 줄바꿈한다 */
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
 }
-.day.is-selected .day-dot { background: var(--accent-contrast); }
-.day.is-outside .day-dot { background: var(--text-muted); }
+.day-event {
+  display: block;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;   /* 긴 단어·URL도 칸 너비에서 끊는다 */
+  word-break: break-word;
+}
+.day.is-selected .day-event {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--accent-contrast);
+}
+.day.is-outside .day-event { background: var(--surface-2); color: var(--text-muted); }
 
 /* 일정 패널 */
 .events-title { font-size: 1.05rem; font-weight: 700; }
@@ -527,7 +548,9 @@ button { font: inherit; cursor: pointer; }
   .nav-toggle { display: inline-flex; }
   .hero { padding: 56px 0 44px; }
   .section { padding: 48px 0; }
-  .day { min-height: 52px; padding: 6px 2px 5px; }
+  .day { min-height: 52px; padding: 4px 2px; gap: 3px; }
+  .day .day-num { font-size: 0.85rem; }
+  .day-event { font-size: 0.64rem; padding: 2px 3px; border-radius: 4px; }
   .calendar-weekdays, .calendar-grid { gap: 4px; }
   .upcoming-date { min-width: 92px; }
 }
